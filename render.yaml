@@ -1,3 +1,4 @@
+# Compatibility template only. This build was not deployed.
 services:
   - type: web
     name: meme-machine
@@ -6,6 +7,3 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --workers 1 --threads 4 --bind 0.0.0.0:$PORT app:app
     healthCheckPath: /health
-    envVars:
-      - key: GIPHY_API_KEY
-        sync: false

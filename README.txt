@@ -1,2 +1,0 @@
-Meme Machine 0.4 deployment candidate
-Upload these files to a GitHub repository, then create a Render Blueprint from that repository or a Python Web Service using the commands in render.yaml. Set GIPHY_API_KEY in Render environment settings, never in source code. Open the assigned HTTPS URL and test microphone, GIF retrieval, and fullscreen. Video provider remains unconfigured. Rate limiting is in-memory and intended for a single worker prototype; review provider terms, quotas, proxy-aware rate limiting and privacy before public release.
