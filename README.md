@@ -1,6 +1,6 @@
-# North’s Big Red Button · Meme Machine 0.5
+# North’s Big Red Button · Meme Machine 0.6
 
-**Local release candidate. Nothing deployed.** Based on the working 0.4 design: dark console, red **MEME ME** button, microphone, media-mode selector and fullscreen toggle. 0.5 removes the Flask GIPHY relay without changing the deployed 0.4 app.
+**0.6 candidate. Not yet deployed.** Keeps the existing design, starter pack and key-free operation. It does not restore the legacy server relay. The 0.6 source stages browser-side GIPHY configuration and clearer, non-repeating starter fallback.
 
 ## What works without a provider
 
@@ -22,14 +22,14 @@ For static hosting later, serve only index.html, privacy.html, manifest.webmanif
 
 ## Live search and devices
 
-- The optional GIPHY GIF adapter is off. It performs direct browser search for unmatched queries only when an approved browser-visible web key is supplied by the app operator. Do not expose a server-only credential. GIPHY results stay separate from the local pack, use the original rendition URLs, and show the supplied attribution mark. Provider integration was tested with mocked responses only. Verify current restrictions and approval before activating it.
+- The optional GIPHY GIF adapter is off. It performs direct browser search for unmatched queries only when an approved browser-visible web key is supplied by the app operator. For Flask, set only `GIPHY_WEB_CLIENT_KEY`; `GIPHY_API_KEY` is deliberately ignored. On a static host configure the corresponding public value in `static/config.js`. Do not expose a server-only credential. GIPHY results stay separate from the local pack, use the original rendition URLs, and show the supplied attribution mark. Provider integration was tested with mocked responses only. Verify current restrictions and approval before activating it.
 - No broad live original-audio provider is enabled. [GIPHY Clips Search](https://developers.giphy.com/docs/clips/endpoint/search/) requires separate approval. A GIF key does not establish access. No key, vendor account or paid integration is needed for the starter pack.
 - Real Android Chrome mic, home-screen install, and audio output on Ash’s device need a smoke test of this exact build on an authorized HTTPS origin. PWA installability checks and simulated browser speech are not substitutes for these.
 
 ## Verify
 
 ```sh
-node --test tests/matcher.test.js
+node --test tests/*.test.js
 PYTHONPATH=. python3 tests/backend.py
 # Requires Playwright and a Chromium binary; use the HTTP URL printed above.
 CHROMIUM=/path/to/chromium node tests/browser.cjs

@@ -2,9 +2,10 @@
 (() => {
 const $=id=>document.getElementById(id);
 const catalog=window.MM_CATALOG, match=window.MM_MATCH;
+const gifKey=window.MM_CONFIG?.giphyClientKey||'';
 const screen=$('screen'), stage=$('stage');
 let results=[],index=0,current=null,objectUrl=null,request=null,round=0,localQueue=false;
-let recognition=null, installEvent=null;
+let recognition=null, installEvent=null, queueLabel='';
 const say=message=>{$('status').textContent=message;};
 const mode=()=>$('mode').value;
 try{$('full').checked=localStorage.getItem('mm-full')!=='false';}catch{}
@@ -73,9 +74,13 @@ function releaseFile(){
   if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null;}
 }
 function queue(items,n=0,label=''){
-  results=items;index=n;
+  results=items;index=n;queueLabel=label;
   if(items.length)show(items[n],label);
   else{stopMedia();setExpanded(false,true);say('No media found for this format.');}
+}
+function fallback(items,label,previousId=current?.id){
+  const old=items.findIndex(item=>item.id===previousId);
+  queue(items,items.length?(old+1)%items.length:0,label);
 }
 function safeHttps(value,hosts){
   try{const u=new URL(value);return u.protocol==='https:'&&hosts.some(d=>u.hostname===d||u.hostname.endsWith('.'+d))?value:'';}catch{return '';}
@@ -85,7 +90,7 @@ async function provider(query,ticket){
   const timer=setTimeout(()=>controller.abort(),2800);
   try{
     const url=new URL('https://api.giphy.com/v1/gifs/search');
-    url.search=new URLSearchParams({api_key:MM_CONFIG.giphyClientKey,q:query,limit:'12',rating:'pg-13'});
+    url.search=new URLSearchParams({api_key:gifKey,q:query,limit:'12',rating:'pg-13'});
     const res=await fetch(url,{signal:controller.signal,cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
     if(!res.ok)throw Error('Provider unavailable');
     const body=await res.json();
@@ -101,25 +106,27 @@ async function search(){
   const ticket=nextRound(), query=$('q').value.trim(), selected=mode();
   const ranked=match.rank(query,selected,catalog);
   localQueue=false;
-  if(ranked.matched||ranked.defaulted||selected==='video'||[...query].length>50||!MM_CONFIG.giphyClientKey||!navigator.onLine){
-    queue(ranked.items,0,ranked.matched||ranked.defaulted?'':'Starter catalog · no close match');
+  if(ranked.matched||ranked.defaulted||selected==='video'||[...query].length>50||!gifKey||!navigator.onLine){
+    if(ranked.matched||ranked.defaulted)queue(ranked.items);
+    else fallback(ranked.items,'Starter catalog · no close match');
     releaseFile(); return;
   }
+  const previousId=current?.id;
   stopMedia();releaseFile();setExpanded(false);
   $('fire').setAttribute('aria-busy','true');say('Looking for a reaction…');
   try{
     const items=await provider(query,ticket);
     if(ticket!==round)return;
-    if(items.length)queue(items);else queue(ranked.items,0,'Starter catalog · no close match');
+    if(items.length)queue(items);else fallback(ranked.items,'Starter catalog · no live results',previousId);
   } catch {
-    if(ticket===round)queue(ranked.items,0,'Starter catalog · live GIF search unavailable');
+    if(ticket===round)fallback(ranked.items,'Starter catalog · live GIF search unavailable',previousId);
   } finally {if(ticket===round)$('fire').removeAttribute('aria-busy');}
 }
 function next(){
   if($('fire').hasAttribute('aria-busy'))return;
   if(!results.length||localQueue){search();return;}
-  if(results.length<2){show(results[0]);return;}
-  index=(index+1)%results.length;show(results[index]);
+  if(results.length<2){show(results[0],queueLabel);return;}
+  index=(index+1)%results.length;show(results[index],queueLabel);
 }
 function random(){
   nextRound();localQueue=false;

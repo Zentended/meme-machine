@@ -1,6 +1,6 @@
 'use strict';
-const CACHE='meme-machine-v05-2';
-const shell=['/','/manifest.webmanifest','/privacy.html','/static/app.css','/static/config.js','/static/catalog.js','/static/matcher.js','/static/app.js','/static/icons/icon-192.png','/static/icons/icon-512.png','/static/icons/mask-512.png'];
+const CACHE='meme-machine-v06-2';
+const shell=['/','/manifest.webmanifest','/privacy.html','/static/app.css','/static/catalog.js','/static/matcher.js','/static/app.js','/static/icons/icon-192.png','/static/icons/icon-512.png','/static/icons/mask-512.png'];
 // Only owned/attributed bundled media. Never cache external provider requests, speech, or user files.
 const clips=['eagle-has-landed','one-small-step','liftoff'];
 const assets=new Set([...shell,...clips.flatMap(x=>['.mp4','.jpg'].map(s=>'/static/media/'+x+s)),'/static/media/landing.gif','/static/media/liftoff.gif']);
@@ -36,7 +36,15 @@ async function rangeResponse(req,cached){
 }
 self.addEventListener('fetch',event=>{
  const req=event.request,u=new URL(req.url);
- if(req.method!=='GET'||u.origin!==location.origin||!assets.has(u.pathname))return;
+ if(req.method!=='GET'||u.origin!==location.origin)return;
+ if(u.pathname==='/static/config.js'){
+  event.respondWith((async()=>{
+   try{const res=await fetch(req,{cache:'no-store'});if(res.ok)return res;}catch{}
+   return new Response("window.MM_CONFIG = Object.freeze({giphyClientKey:''});",
+     {headers:{'Content-Type':'application/javascript','Cache-Control':'no-store'}});
+  })());return;
+ }
+ if(!assets.has(u.pathname))return;
  event.respondWith((async()=>{
   const c=await caches.open(CACHE);
   // A connected launch must see the live homepage, including a server rollback.
@@ -51,12 +59,6 @@ self.addEventListener('fetch',event=>{
    return live||Response.error();
   }
   if(req.headers.has('range'))return rangeResponse(req,await c.match(u.pathname));
-  // A newly configured provider option takes effect on a connected reload.
-  if(u.pathname==='/static/config.js'){
-   try{const res=await fetch(req,{cache:'no-cache'});
-    if(res.ok){await c.put(u.pathname,res.clone());return res;}
-   }catch{}
-  }
   const hit=await c.match(u.pathname);
   if(hit)return hit;
   const res=await fetch(req);
